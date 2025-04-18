@@ -69,6 +69,14 @@ describe("Voting", () => {
     console.log(blueCandidate);
     expect(blueCandidate.candidateVotes.toNumber()).toBe(0);
     expect(blueCandidate.candidateName).toBe("Blue");
+
+    const [pollAddress] = PublicKey.findProgramAddressSync(
+      [new anchor.BN(1).toArrayLike(Buffer, "le", 8)],
+      votingProgram.programId,
+    )
+    const poll = await votingProgram.account.poll.fetch(pollAddress);
+    console.log(poll);
+    expect(poll.candidateAmount.toNumber()).toBe(2);
   });
 
   it("vote candidates", async () => {
