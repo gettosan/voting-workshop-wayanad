@@ -219,6 +219,23 @@ export type Voting = {
       ]
     }
   ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "pollEndInThePast",
+      "msg": "Poll end date is in the past"
+    },
+    {
+      "code": 6001,
+      "name": "invalidTimestamp",
+      "msg": "Provided timestamp is not a valid Unix timestamp."
+    },
+    {
+      "code": 6002,
+      "name": "invalidEndDate",
+      "msg": "Poll end date is before poll start date"
+    }
+  ],
   "types": [
     {
       "name": "candidate",

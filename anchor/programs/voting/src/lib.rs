@@ -8,13 +8,32 @@ declare_id!("coUnmi3oBUtwtd9fjeAvSsJssXh5A5xyPbhpewyzRVF");
 pub mod voting {
     use super::*;
 
-    pub fn initialize_poll(ctx: Context<InitializePoll>, 
-                            poll_id: u64,
-                            description: String,
-                            poll_start: u64,
-                            poll_end: u64) -> Result<()> {
-
+    pub fn initialize_poll(
+        ctx: Context<InitializePoll>,
+        poll_id: u64,
+        description: String,
+        poll_start: u64,
+        poll_end: u64
+    ) -> Result<()> {
         let poll = &mut ctx.accounts.poll;
+        let clock = Clock::get()?;
+        let now = clock.unix_timestamp as u64;
+
+        let min_unix_timestamp = 1_000_000_000;
+        let max_unix_timestamp = 4_000_000_000;
+
+        if poll_start < min_unix_timestamp || poll_start > max_unix_timestamp {
+            return Err(Errors::InvalidTimestamp.into());
+        }
+
+        if poll_end <= now {
+            return Err(Errors::PollEndInThePast.into());
+        }
+
+        if poll_start >= poll_end {
+            return Err(Errors::InvalidEndDate.into());
+        }
+
         poll.poll_id = poll_id;
         poll.description = description;
         poll.poll_start = poll_start;
@@ -23,10 +42,11 @@ pub mod voting {
         Ok(())
     }
 
-    pub fn initialize_candidate(ctx: Context<InitializeCandidate>, 
-                                candidate_name: String,
-                                _poll_id: u64
-                            ) -> Result<()> {
+    pub fn initialize_candidate(
+        ctx: Context<InitializeCandidate>,
+        candidate_name: String,
+        _poll_id: u64
+    ) -> Result<()> {
         let candidate = &mut ctx.accounts.candidate;
         candidate.candidate_name = candidate_name;
         candidate.candidate_votes = 0;
@@ -41,7 +61,6 @@ pub mod voting {
         msg!("Votes: {}", candidate.candidate_votes);
         Ok(())
     }
-
 }
 
 #[derive(Accounts)]
@@ -50,10 +69,7 @@ pub struct Vote<'info> {
     #[account(mut)]
     pub signer: Signer<'info>,
 
-    #[account(
-        seeds = [poll_id.to_le_bytes().as_ref()],
-        bump
-      )]
+    #[account(seeds = [poll_id.to_le_bytes().as_ref()], bump)]
     pub poll: Account<'info, Poll>,
 
     #[account(
@@ -65,7 +81,6 @@ pub struct Vote<'info> {
 
     pub system_program: Program<'info, System>,
 }
-
 
 #[derive(Accounts)]
 #[instruction(candidate_name: String, poll_id: u64)]
@@ -81,11 +96,11 @@ pub struct InitializeCandidate<'info> {
     pub poll: Account<'info, Poll>,
 
     #[account(
-      init,
-      payer = signer,
-      space = 8 + Candidate::INIT_SPACE,
-      seeds = [poll_id.to_le_bytes().as_ref(), candidate_name.as_ref()],
-      bump
+        init,
+        payer = signer,
+        space = 8 + Candidate::INIT_SPACE,
+        seeds = [poll_id.to_le_bytes().as_ref(), candidate_name.as_ref()],
+        bump
     )]
     pub candidate: Account<'info, Candidate>,
     pub system_program: Program<'info, System>,
@@ -105,11 +120,11 @@ pub struct InitializePoll<'info> {
     #[account(mut)]
     pub signer: Signer<'info>,
     #[account(
-      init,
-      payer = signer,
-      space = 8 + Poll::INIT_SPACE,
-      seeds = [poll_id.to_le_bytes().as_ref()],
-      bump
+        init,
+        payer = signer,
+        space = 8 + Poll::INIT_SPACE,
+        seeds = [poll_id.to_le_bytes().as_ref()],
+        bump
     )]
     pub poll: Account<'info, Poll>,
     pub system_program: Program<'info, System>,
@@ -124,4 +139,16 @@ pub struct Poll {
     pub poll_start: u64,
     pub poll_end: u64,
     pub candidate_amount: u64,
+}
+
+#[error_code]
+pub enum Errors {
+    #[msg("Poll end date is in the past")]
+    PollEndInThePast,
+
+    #[msg("Provided timestamp is not a valid Unix timestamp.")]
+    InvalidTimestamp,
+
+    #[msg("Poll end date is before poll start date")]
+    InvalidEndDate,
 }

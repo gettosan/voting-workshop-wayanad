@@ -213,6 +213,23 @@
       ]
     }
   ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "PollEndInThePast",
+      "msg": "Poll end date is in the past"
+    },
+    {
+      "code": 6001,
+      "name": "InvalidTimestamp",
+      "msg": "Provided timestamp is not a valid Unix timestamp."
+    },
+    {
+      "code": 6002,
+      "name": "InvalidEndDate",
+      "msg": "Poll end date is before poll start date"
+    }
+  ],
   "types": [
     {
       "name": "Candidate",

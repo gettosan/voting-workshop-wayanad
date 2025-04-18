@@ -21,11 +21,14 @@ describe("Voting", () => {
   });
 
   it("initializes a poll", async () => {
+    let poll_start = Math.floor(Date.now() / 1000) + 60;
+    let poll_end = poll_start + 60 * 60 * 24;
+
     await votingProgram.methods.initializePoll(
       new anchor.BN(1),
       "What is your favorite color?",
-      new anchor.BN(100),
-      new anchor.BN(1739370789),
+      new anchor.BN(poll_start),
+      new anchor.BN(poll_end),
     ).rpc();
 
     const [pollAddress] = PublicKey.findProgramAddressSync(
@@ -39,8 +42,28 @@ describe("Voting", () => {
 
     expect(poll.pollId.toNumber()).toBe(1);
     expect(poll.description).toBe("What is your favorite color?");
-    expect(poll.pollStart.toNumber()).toBe(100);
+    expect(poll.pollStart.toNumber()).toBe(poll_start);
   });
+
+  it("fails to initialize poll with invalid timestamp", async () => {
+    try {
+      await votingProgram.methods.initializePoll(
+        new anchor.BN(2),                              
+        "Invalid timestamp test",                      
+        new anchor.BN(100),                            
+        new anchor.BN(1739370789),                     
+      ).rpc();
+      // if the transaction does not throw, the test fails
+      fail("Expected initializePoll to throw due to invalid timestamp");
+    } catch (err: any) {
+      const logs = err.logs || [];
+      const foundError = logs.some((log: string) =>
+        log.includes("Provided timestamp is not a valid Unix timestamp.")
+      );
+      expect(foundError).toBe(true);
+    }
+  });
+  
 
   it("initializes candidates", async () => {
     await votingProgram.methods.initializeCandidate(
