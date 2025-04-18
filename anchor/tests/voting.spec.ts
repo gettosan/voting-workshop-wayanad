@@ -21,11 +21,15 @@ describe("Voting", () => {
   });
 
   it("initializes a poll", async () => {
+    const now = Math.floor(Date.now() / 1000);
+    const start = now - 10;
+    const end = now + 60;
+
     await votingProgram.methods.initializePoll(
       new anchor.BN(1),
       "What is your favorite color?",
-      new anchor.BN(100),
-      new anchor.BN(1739370789),
+      new anchor.BN(start),
+      new anchor.BN(end)
     ).rpc();
 
     const [pollAddress] = PublicKey.findProgramAddressSync(
@@ -39,7 +43,7 @@ describe("Voting", () => {
 
     expect(poll.pollId.toNumber()).toBe(1);
     expect(poll.description).toBe("What is your favorite color?");
-    expect(poll.pollStart.toNumber()).toBe(100);
+    expect(poll.pollStart.toNumber()).toBe(start);
   });
 
   it("initializes candidates", async () => {
@@ -102,5 +106,55 @@ describe("Voting", () => {
     console.log(blueCandidate);
     expect(blueCandidate.candidateVotes.toNumber()).toBe(1);
     expect(blueCandidate.candidateName).toBe("Blue");
+  });
+
+  it("should fail to vote before poll start", async () => {
+    const now = Math.floor(Date.now() / 1000);
+    const start = now + 60;
+    const end = now + 120;
+
+    await votingProgram.methods.initializePoll(
+      new anchor.BN(2),
+      "Should this fail before start?",
+      new anchor.BN(start),
+      new anchor.BN(end)
+    ).rpc();
+
+    await votingProgram.methods.initializeCandidate(
+      "EarlyBird",
+      new anchor.BN(2)
+    ).rpc();
+
+    await expect(
+      votingProgram.methods.vote("EarlyBird", new anchor.BN(2)).rpc()
+    ).rejects.toMatchObject({
+      error: {
+        errorMessage: "Poll has not started yet.",
+      },
+    });
+  });
+
+
+  it("should fail to vote after poll end", async () => {
+    const now = Math.floor(Date.now() / 1000);
+    const start = now - 200;
+    const end = now - 100;
+
+    await votingProgram.methods.initializePoll(
+      new anchor.BN(3),
+      "Too late?",
+      new anchor.BN(start),
+      new anchor.BN(end)
+    ).rpc();
+
+    await votingProgram.methods.initializeCandidate("LateComer", new anchor.BN(3)).rpc();
+
+    await expect(
+      votingProgram.methods.vote("LateComer", new anchor.BN(3)).rpc()
+    ).rejects.toMatchObject({
+      error: {
+        errorMessage: "Poll has ended.",
+      },
+    });
   });
 });

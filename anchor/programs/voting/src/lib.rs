@@ -35,6 +35,20 @@ pub mod voting {
 
     pub fn vote(ctx: Context<Vote>, _candidate_name: String, _poll_id: u64) -> Result<()> {
         let candidate = &mut ctx.accounts.candidate;
+        let poll = &mut ctx.accounts.poll;
+
+        let now = Clock::get()?.unix_timestamp as u64;
+
+        if now < poll.poll_start {
+            return Err(ErrorCode::PollNotStarted.into());
+        }
+        if now > poll.poll_end {
+            return Err(ErrorCode::PollEnded.into());
+        }
+        if poll.poll_start == 0 || poll.poll_end == 0 {
+            return Err(ErrorCode::PollDidNotExist.into());
+        }
+
         candidate.candidate_votes += 1;
 
         msg!("Voted for candidate: {}", candidate.candidate_name);
@@ -124,4 +138,14 @@ pub struct Poll {
     pub poll_start: u64,
     pub poll_end: u64,
     pub candidate_amount: u64,
+}
+
+#[error_code]
+pub enum ErrorCode {
+    #[msg("Poll has not started yet.")]
+    PollNotStarted,
+    #[msg("Poll has ended.")]
+    PollEnded,
+    #[msg("Poll does not exist.")]
+    PollDidNotExist
 }
