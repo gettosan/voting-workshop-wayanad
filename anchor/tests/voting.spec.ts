@@ -1,5 +1,5 @@
 import * as anchor from "@coral-xyz/anchor";
-import { Keypair, PublicKey } from "@solana/web3.js";
+import { PublicKey } from "@solana/web3.js";
 import { BankrunProvider, startAnchor } from "anchor-bankrun";
 import { Voting } from "../target/types/voting";
 
@@ -102,5 +102,12 @@ describe("Voting", () => {
     console.log(blueCandidate);
     expect(blueCandidate.candidateVotes.toNumber()).toBe(1);
     expect(blueCandidate.candidateName).toBe("Blue");
+
+    const [pollAddress]=PublicKey.findProgramAddressSync(
+      [new anchor.BN(1).toArrayLike(Buffer, "le", 8)],
+      votingProgram.programId,
+    );
+    const poll=await votingProgram.account.poll.fetch(pollAddress);
+    expect(poll.totalVotes.toNumber()).toBe(3);
   });
 });
