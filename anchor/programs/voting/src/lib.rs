@@ -49,14 +49,25 @@ pub mod voting {
     ) -> Result<()> {
         let candidate = &mut ctx.accounts.candidate;
         candidate.candidate_name = candidate_name;
+        candidate.poll_id = poll_id;
         candidate.candidate_votes = 0;
         Ok(())
     }
 
     pub fn vote(ctx: Context<Vote>, _candidate_name: String, _poll_id: u64) -> Result<()> {
         let candidate = &mut ctx.accounts.candidate;
-        candidate.candidate_votes += 1;
+        let voter_record = &mut ctx.accounts.voter_record;
 
+        if voter_record.has_voted {
+          return Err(error!(Error::AlreadyVoted));
+      }
+  
+      voter_record.voter = ctx.accounts.signer.key();
+      voter_record.poll_id = _poll_id;
+      voter_record.has_voted = true;
+  
+      candidate.candidate_votes += 1;
+        
         msg!("Voted for candidate: {}", candidate.candidate_name);
         msg!("Votes: {}", candidate.candidate_votes);
         Ok(())
@@ -78,6 +89,14 @@ pub struct Vote<'info> {
       bump
     )]
     pub candidate: Account<'info, Candidate>,
+    #[account(
+      init_if_needed, // this prevents from creating account if it already exists
+      payer = signer,
+      space = 8 + VoterRecord::INIT_SPACE,
+      seeds = [poll_id.to_le_bytes().as_ref(), signer.key().as_ref()],
+      bump
+    )]
+    pub voter_record : Account<'info,VoterRecord>,
 
     pub system_program: Program<'info, System>,
 }
@@ -112,6 +131,7 @@ pub struct Candidate {
     #[max_len(32)]
     pub candidate_name: String,
     pub candidate_votes: u64,
+    pub poll_id: u64,
 }
 
 #[derive(Accounts)]
@@ -151,4 +171,18 @@ pub enum Errors {
 
     #[msg("Poll end date is before poll start date")]
     InvalidEndDate,
+}
+
+#[account]
+#[derive(InitSpace)]
+pub struct VoterRecord {
+    pub voter: Pubkey,
+    pub poll_id: u64,
+    pub has_voted: bool,
+}
+
+#[error_code]
+pub enum Error {
+    #[msg("Voter has already cast a vote in this poll")]
+    AlreadyVoted,
 }

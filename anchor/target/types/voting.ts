@@ -175,6 +175,22 @@ export type Voting = {
           }
         },
         {
+          "name": "voterRecord",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "arg",
+                "path": "pollId"
+              },
+              {
+                "kind": "account",
+                "path": "signer"
+              }
+            ]
+          }
+        },
+        {
           "name": "systemProgram",
           "address": "11111111111111111111111111111111"
         }
@@ -217,6 +233,26 @@ export type Voting = {
         153,
         111
       ]
+    },
+    {
+      "name": "voterRecord",
+      "discriminator": [
+        178,
+        96,
+        138,
+        116,
+        143,
+        202,
+        115,
+        33
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "alreadyVoted",
+      "msg": "Voter has already cast a vote in this poll"
     }
   ],
   "errors": [
@@ -249,6 +285,10 @@ export type Voting = {
           {
             "name": "candidateVotes",
             "type": "u64"
+          },
+          {
+            "name": "pollId",
+            "type": "u64"
           }
         ]
       }
@@ -277,6 +317,26 @@ export type Voting = {
           {
             "name": "candidateAmount",
             "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "voterRecord",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "voter",
+            "type": "pubkey"
+          },
+          {
+            "name": "pollId",
+            "type": "u64"
+          },
+          {
+            "name": "hasVoted",
+            "type": "bool"
           }
         ]
       }
