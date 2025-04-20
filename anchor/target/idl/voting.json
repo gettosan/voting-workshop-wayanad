@@ -64,7 +64,7 @@
           "type": "string"
         },
         {
-          "name": "_poll_id",
+          "name": "poll_id",
           "type": "u64"
         }
       ]
@@ -169,6 +169,22 @@
           }
         },
         {
+          "name": "voter_record",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "arg",
+                "path": "poll_id"
+              },
+              {
+                "kind": "account",
+                "path": "signer"
+              }
+            ]
+          }
+        },
+        {
           "name": "system_program",
           "address": "11111111111111111111111111111111"
         }
@@ -211,6 +227,26 @@
         153,
         111
       ]
+    },
+    {
+      "name": "VoterRecord",
+      "discriminator": [
+        178,
+        96,
+        138,
+        116,
+        143,
+        202,
+        115,
+        33
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "AlreadyVoted",
+      "msg": "Voter has already cast a vote in this poll"
     }
   ],
   "types": [
@@ -225,6 +261,10 @@
           },
           {
             "name": "candidate_votes",
+            "type": "u64"
+          },
+          {
+            "name": "poll_id",
             "type": "u64"
           }
         ]
@@ -254,6 +294,26 @@
           {
             "name": "candidate_amount",
             "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "VoterRecord",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "voter",
+            "type": "pubkey"
+          },
+          {
+            "name": "poll_id",
+            "type": "u64"
+          },
+          {
+            "name": "has_voted",
+            "type": "bool"
           }
         ]
       }
