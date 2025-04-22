@@ -1,4 +1,6 @@
 import * as anchor from "@coral-xyz/anchor";
+import { PublicKey } from "@solana/web3.js";
+import { BankrunProvider, startAnchor } from "anchor-bankrun";
 import { Keypair, LAMPORTS_PER_SOL, PublicKey, SystemProgram } from "@solana/web3.js";
 import { BankrunProvider, startAnchor, } from "anchor-bankrun";
 import { Voting } from "../target/types/voting";
@@ -51,11 +53,19 @@ describe("Voting", () => {
     let poll_start = Math.floor(Date.now() / 1000) + 60;
     let poll_end = poll_start + 60 * 60 * 24;
 
+    const now = Math.floor(Date.now() / 1000);
+    const start = now - 10;
+    const end = now + 60;
+
     await votingProgram.methods.initializePoll(
       new anchor.BN(1),
       "What is your favorite color?",
+
       new anchor.BN(poll_start),
       new anchor.BN(poll_end),
+
+      new anchor.BN(start),
+      new anchor.BN(end)
     ).rpc();
 
     const [pollAddress] = PublicKey.findProgramAddressSync(
@@ -89,6 +99,9 @@ describe("Voting", () => {
       );
       expect(foundError).toBe(true);
     }
+
+    expect(poll.pollStart.toNumber()).toBe(start);
+
   });
   
 
@@ -119,6 +132,14 @@ describe("Voting", () => {
     console.log(blueCandidate);
     expect(blueCandidate.candidateVotes.toNumber()).toBe(0);
     expect(blueCandidate.candidateName).toBe("Blue");
+
+    const [pollAddress] = PublicKey.findProgramAddressSync(
+      [new anchor.BN(1).toArrayLike(Buffer, "le", 8)],
+      votingProgram.programId,
+    )
+    const poll = await votingProgram.account.poll.fetch(pollAddress);
+    console.log(poll);
+    expect(poll.candidateAmount.toNumber()).toBe(2);
   });
 
   it("votes for a single candidate", async () => {
@@ -150,6 +171,13 @@ describe("Voting", () => {
     const blueCandidate = await votingProgram.account.candidate.fetch(blueAddress);
     expect(blueCandidate.candidateVotes.toNumber()).toBe(0);
     expect(blueCandidate.candidateName).toBe("Blue");
+
+    const [pollAddress]=PublicKey.findProgramAddressSync(
+      [new anchor.BN(1).toArrayLike(Buffer, "le", 8)],
+      votingProgram.programId,
+    );
+    const poll=await votingProgram.account.poll.fetch(pollAddress);
+    expect(poll.totalVotes.toNumber()).toBe(3);
   });
 
   it("prevents the same voter from voting different candidates", async () => {
@@ -164,5 +192,55 @@ describe("Voting", () => {
     } catch (err: any) {
       expect(err.toString()).toMatch(/Voter has already cast a vote/i);
     }
+  });
+
+  it("should fail to vote before poll start", async () => {
+    const now = Math.floor(Date.now() / 1000);
+    const start = now + 60;
+    const end = now + 120;
+
+    await votingProgram.methods.initializePoll(
+      new anchor.BN(2),
+      "Should this fail before start?",
+      new anchor.BN(start),
+      new anchor.BN(end)
+    ).rpc();
+
+    await votingProgram.methods.initializeCandidate(
+      "EarlyBird",
+      new anchor.BN(2)
+    ).rpc();
+
+    await expect(
+      votingProgram.methods.vote("EarlyBird", new anchor.BN(2)).rpc()
+    ).rejects.toMatchObject({
+      error: {
+        errorMessage: "Poll has not started yet.",
+      },
+    });
+  });
+
+
+  it("should fail to vote after poll end", async () => {
+    const now = Math.floor(Date.now() / 1000);
+    const start = now - 200;
+    const end = now - 100;
+
+    await votingProgram.methods.initializePoll(
+      new anchor.BN(3),
+      "Too late?",
+      new anchor.BN(start),
+      new anchor.BN(end)
+    ).rpc();
+
+    await votingProgram.methods.initializeCandidate("LateComer", new anchor.BN(3)).rpc();
+
+    await expect(
+      votingProgram.methods.vote("LateComer", new anchor.BN(3)).rpc()
+    ).rejects.toMatchObject({
+      error: {
+        errorMessage: "Poll has ended.",
+      },
+    });
   });
 });

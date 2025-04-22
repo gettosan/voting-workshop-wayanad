@@ -143,6 +143,7 @@
         },
         {
           "name": "poll",
+          "writable": true,
           "pda": {
             "seeds": [
               {
@@ -263,7 +264,21 @@
     {
       "code": 6002,
       "name": "InvalidEndDate",
-      "msg": "Poll end date is before poll start date"
+      "msg": "Poll end date is before poll start date",
+    }
+    {
+      "name": "PollNotStarted",
+      "msg": "Poll has not started yet."
+    },
+    {
+      "code": 6001,
+      "name": "PollEnded",
+      "msg": "Poll has ended."
+    },
+    {
+      "code": 6002,
+      "name": "PollDidNotExist",
+      "msg": "Poll does not exist."
     }
   ],
   "types": [
@@ -310,6 +325,10 @@
           },
           {
             "name": "candidate_amount",
+            "type": "u64"
+          },
+          {
+            "name": "total_votes",
             "type": "u64"
           }
         ]

@@ -39,6 +39,7 @@ pub mod voting {
         poll.poll_start = poll_start;
         poll.poll_end = poll_end;
         poll.candidate_amount = 0;
+        poll.total_votes=0;
         Ok(())
     }
 
@@ -51,11 +52,32 @@ pub mod voting {
         candidate.candidate_name = candidate_name;
         candidate.poll_id = poll_id;
         candidate.candidate_votes = 0;
+
+        let poll = &mut ctx.accounts.poll;
+        poll.candidate_amount += 1;
         Ok(())
     }
 
     pub fn vote(ctx: Context<Vote>, _candidate_name: String, _poll_id: u64) -> Result<()> {
         let candidate = &mut ctx.accounts.candidate;
+        let poll = &mut ctx.accounts.poll;
+
+        let now = Clock::get()?.unix_timestamp as u64;
+
+        if now < poll.poll_start {
+            return Err(ErrorCode::PollNotStarted.into());
+        }
+        if now > poll.poll_end {
+            return Err(ErrorCode::PollEnded.into());
+        }
+        if poll.poll_start == 0 || poll.poll_end == 0 {
+            return Err(ErrorCode::PollDidNotExist.into());
+        }
+
+        candidate.candidate_votes += 1;
+        let poll= &mut ctx.accounts.poll;
+        poll.total_votes+=1;
+
         let voter_record = &mut ctx.accounts.voter_record;
 
         if voter_record.has_voted {
@@ -68,9 +90,10 @@ pub mod voting {
   
       candidate.candidate_votes += 1;
         
-        msg!("Voted for candidate: {}", candidate.candidate_name);
-        msg!("Votes: {}", candidate.candidate_votes);
-        Ok(())
+      msg!("Voted for candidate: {}", candidate.candidate_name);
+      msg!("Votes: {}", candidate.candidate_votes);
+      msg!("Total Poll Votes: {}", poll.total_votes);
+      Ok(())
     }
 }
 
@@ -159,6 +182,7 @@ pub struct Poll {
     pub poll_start: u64,
     pub poll_end: u64,
     pub candidate_amount: u64,
+    pub total_votes: u64,
 }
 
 #[error_code]
@@ -181,7 +205,15 @@ pub struct VoterRecord {
     pub has_voted: bool,
 }
 
-#[error_code]
+pub enum ErrorCode {
+    #[msg("Poll has not started yet.")]
+    PollNotStarted,
+    #[msg("Poll has ended.")]
+    PollEnded,
+    #[msg("Poll does not exist.")]
+    PollDidNotExist
+}
+
 pub enum Error {
     #[msg("Voter has already cast a vote in this poll")]
     AlreadyVoted,
