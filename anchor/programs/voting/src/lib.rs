@@ -32,6 +32,9 @@ pub mod voting {
         candidate.candidate_name = candidate_name;
         candidate.poll_id = poll_id;
         candidate.candidate_votes = 0;
+
+        let poll = &mut ctx.accounts.poll;
+        poll.candidate_amount += 1;
         Ok(())
     }
 
