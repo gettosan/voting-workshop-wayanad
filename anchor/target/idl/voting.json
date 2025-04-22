@@ -250,6 +250,23 @@
       "msg": "Voter has already cast a vote in this poll"
     }
   ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "PollNotStarted",
+      "msg": "Poll has not started yet."
+    },
+    {
+      "code": 6001,
+      "name": "PollEnded",
+      "msg": "Poll has ended."
+    },
+    {
+      "code": 6002,
+      "name": "PollDidNotExist",
+      "msg": "Poll does not exist."
+    }
+  ],
   "types": [
     {
       "name": "Candidate",

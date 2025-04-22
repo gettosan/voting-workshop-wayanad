@@ -256,6 +256,23 @@ export type Voting = {
       "msg": "Voter has already cast a vote in this poll"
     }
   ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "pollNotStarted",
+      "msg": "Poll has not started yet."
+    },
+    {
+      "code": 6001,
+      "name": "pollEnded",
+      "msg": "Poll has ended."
+    },
+    {
+      "code": 6002,
+      "name": "pollDidNotExist",
+      "msg": "Poll does not exist."
+    }
+  ],
   "types": [
     {
       "name": "candidate",
